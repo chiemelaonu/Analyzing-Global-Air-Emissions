@@ -1,0 +1,435 @@
+---
+title: "Analyzing Global Air Emissions"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Chiemela Onuoha"
+pagetitle: "FR Chiemela Onuoha"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Chiemela Onuoha's Github (chiemelaonu)](https://github.com/stat301-1-2024-fall/final-project-1-chiemelaonu.git)
+
+:::
+
+
+# Introduction 
+I chose this data because I have a genuine interest in the environment and air pollution. Climate change appears in the media more frequently, so dissecting a dataset with the emissions from different countries across different years is relevant. Besides the increase in climate change media, it is beneficial to be interested in the things around you without it being thrown in your face by the news or social media, so I intend to learn something new about the world’s yearly emissions. The data has many observations and interesting subtopics, such as the types of activities that are presumed to be causing the emissions, and I believe it would be intriguing to look into those activities, as well as how the data changes across different years or even quarters. So, questions like: Which countries have the highest emissions per quarter? Which years had the most observations? Which quarters had the most observations? Is there a disparity in air emissions among different parts of the world? i.e. the Western world vs. other parts, etc. With some relatively simple tidying of the data, I can begin to look at patterns or even discrepancies that better allow me to understand and visualize the data.
+
+```{r}
+#| echo: FALSE
+
+library(tidyverse)
+library(scales)
+air_emissions <- read_csv("data/air_emissions_clean.csv")
+
+```
+
+# Data Overview and Quality 
+```{r}
+#| echo: false
+
+glimpse(air_emissions)
+```
+Here lists the column names and the type of each column. Some of the observations for the columns are listed as well. There are 11 variables in this dataset and all of them are character variables. There are around 104,000 observations in this dataset. All of the observations are unique. I will be adding context in the README and also within my analyses when needed for columns that are not clear enough in what they represent. There are missing values in the Observation Status column, but I do not intend to do any EDA with that column, so there shouldn't be any issues from it. In the SOURCE column, it shows that most of the data was reported by a "national statistical authority". The methods are not highlighted, which could mean the data is not the best for accurate and definitive conclusions.
+---
+
+
+# Snippet of Dataset
+```{r}
+#| label: tbl-snippet
+#| tbl-cap: "First Six Observations of Dataset"
+#| echo: FALSE
+
+knitr::kable(head(air_emissions))
+
+```
+In this snippet of the data, you can see the columns that I left included in the data and the arrangement of the columns. Additionally, I pivoted the data so that the emissions column is called "EMISSIONS" and it holds the emissions values.
+
+# Univariate Analysis 
+
+## Distinct Reference Areas
+```{r}
+#| echo: FALSE
+
+# start of eda
+air_emissions |>
+  distinct(`Reference area`) |>
+  knitr::kable()
+
+air_emissions |>
+  ggplot(aes(`Reference area`)) +
+  geom_bar(fill = "cadetblue") +
+  coord_flip() +
+  labs(
+    y = "Number of Observations",
+    x = "Reference Area",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+)
+
+```
+This table and bar chart show the distinct reference areas of the data and their number of occurrences. Each observation is a distinct country, except for one observation that is listed as "European Union", which is a group of 27 different countries.  
+
+## Number of Observations for Each Year
+```{r}
+#| echo: FALSE
+
+air_emissions |>
+  filter(TIME_PERIOD == c(2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022)) |>
+  ggplot(aes(TIME_PERIOD)) +
+  geom_bar(fill = "black") +
+  labs(
+    x = "Year",
+    y = "Count",
+    title = "Distribution of Observations Within Each Year",
+    subtitle = "2022 has the least amount of observations, while the rest have similar numbers",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  )
+```
+The bar chart above shows the full-year time period range of the dataset (2015-2022). The quarterly data I joined into that data goes up to 2024. 
+
+
+## Distribution of Pollutants
+```{r}
+#| echo: FALSE
+
+air_emissions |>
+  ggplot(aes(POLLUTANT)) +
+  geom_bar(fill = "cadetblue3") +
+  labs(
+    title = "There Are Three Different Types of Emissions Recorded in This Data",
+    x = "Type of Pollutant",
+    y = "Count",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  )
+```
+The bar graph above shows the different types of emissions recorded in this data. The types of emissions present are Carbon Monoxide (CO), Carbon Dioxide (CO2), and Greenhouse Gases (GHG). Greenhouse Gases in this data excludes carbon dioxide from biomass used as a fuel.
+
+
+## Five Highest Emissions Observations 
+
+
+```{r}
+#| label: tbl-top5_quarterly
+#| tbl-cap: "Top Five Quarterly Emissions Observations"
+#| echo: FALSE
+
+# highest quarterly emissions
+air_emissions |>
+  filter(grepl('-Q', TIME_PERIOD)) |>
+  arrange(desc(EMISSIONS)) |>
+  slice_head(n = 5) |>
+  knitr::kable()
+  
+```
+@tbl-top5_quarterly shows the highest quarterly emissions counts can be attributed to the UK. For the quarterly counts, the UK has 2 different emissions counts, but for the sake of simplicity, the first value is the value to take note of. The United States being the largest emitter for 2 years in a row is a shocking observation, especially for those values being over 35 billion tons.
+
+
+# Multivariate Analysis 
+
+## Plot of Emissions for Each Year by Pollutant and Unit Measure
+My intention is to look at the counts of emissions and what the specific type of pollutant was, to see if certain types of pollutants in emissions occur more often in certain countries or parts of the world. These three plots also take into account Unit Measure as another reminder of what the emissions are measured in. 
+```{r}
+#| echo: false
+
+# plot of emissions in north america for each year by pollutant and unit measure
+air_emissions |>
+  filter(Region == "North America") |>
+  mutate(EMISSIONS = as.numeric(EMISSIONS)) |>
+  filter(!is.na(EMISSIONS)) |>
+  ggplot(aes(TIME_PERIOD, EMISSIONS)) +
+  geom_point(alpha = 0.7, aes(color = POLLUTANT, shape = UNIT_MEASURE)) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Emissions in North America",
+    x = "Emissions",
+    y = "Frequency",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+
+  ) +
+  scale_y_continuous(labels = scales::comma)
+
+# plot of emissions in europe for each year by pollutant and unit measure
+air_emissions |>
+  filter(Region == "Europe", str_detect(TIME_PERIOD, "^\\d{4}$")) |>
+  mutate(EMISSIONS = as.numeric(EMISSIONS)) |>
+  filter(!is.na(EMISSIONS)) |>
+  ggplot(aes(TIME_PERIOD, EMISSIONS)) +
+  geom_point(alpha = 0.7, aes(color = POLLUTANT, shape = UNIT_MEASURE)) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Emissions in Europe",
+    x = "Year",
+    y = "Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma)
+
+# plot of emissions in asia for each year by pollutant and unit measure
+air_emissions |>
+  filter(Region == "Asia" ) |>
+  mutate(EMISSIONS = as.numeric(EMISSIONS)) |>
+  filter(!is.na(EMISSIONS)) |>
+  ggplot(aes(TIME_PERIOD, EMISSIONS)) +
+  geom_point(alpha = 0.7, aes(color = POLLUTANT, shape = UNIT_MEASURE)) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Emissions in Asia",
+    x = "Emissions",
+    y = "Frequency",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) 
+
+# plot of emissions in south america for each year by pollutant and unit measure
+air_emissions |>
+  filter(Region == "South America" ) |>
+  mutate(EMISSIONS = as.numeric(EMISSIONS)) |>
+  filter(!is.na(EMISSIONS)) |>
+  ggplot(aes(TIME_PERIOD, EMISSIONS)) +
+  geom_point(alpha = 0.7, aes(color = POLLUTANT, shape = UNIT_MEASURE)) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Emissions in South America",
+    x = "Emissions",
+    y = "Frequency",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) 
+```
+For North America, emissions are almost entirely carbon dioxide, with one observation being carbon monoxide and a few being greenhouse gases. Europe's emissions are only carbon dioxide and greenhouse gases. This is on par with previous general beliefs because carbon monoxide emissions occur less since it is the result of incomplete combustion of fuel.^[[Basic Information about Carbon Monoxide (CO) Outdoor Air Pollution](https://www.epa.gov/co-pollution/basic-information-about-carbon-monoxide-co-outdoor-air-pollution) accessed December 4th 2024] This incomplete combustion occurs most often from cars, but can also occur from gas heaters or chimneys. Cars more often emit carbon dioxide as well as a plethora of other things, such as heating, electricity, and agriculture.^[[Sources of Greenhouse Gas Emissions](https://www.epa.gov/ghgemissions/sources-greenhouse-gas-emissions) accessed December 4th 2024] There is a substantial amount of emissions of greenhouse gases, which are defined as gases that trap heat in the atmosphere. They can include carbon dioxide, but also Methane, Nitrous oxide, and Fluorinated gases like chlorofluorocarbons, hydrochlorofluorocarbons, etc.^[[Overview of Greenhouse Gases](https://www.epa.gov/ghgemissions/overview-greenhouse-gases) accessed December 4th 2024]  
+---
+## Economic Activity
+```{r}
+#| label: tbl-distinct-activity
+#| tbl-cap: "Number of Distinct Economic Activities Recorded"
+#| echo: FALSE
+
+air_emissions |>
+  distinct(`Economic activity`) |>
+  count() |>
+  knitr::kable()
+```
+
+```{r}
+#| label: tbl-top10_activity_region
+#| tbl-cap: "Top Ten Frequently Recorded Economic Activities with Region Makeup"
+#| echo: FALSE
+
+air_emissions |>
+  count(`Economic activity`, sort = TRUE) |>
+  slice_head(n = 10) |>
+  left_join(
+    air_emissions |>
+      count(`Economic activity`, Region) |>
+      group_by(`Economic activity`) |>
+      summarize(Regions = paste(paste0(Region, " (", n, ")"), collapse = ", ")),
+    by = "Economic activity"
+  ) |>
+  knitr::kable()
+```
+@tbl-distinct-activity shows that there are 107 unique economic activities the emissions in the data can be attributed to. @tbl-top10_activity_region allows us to see the most frequently observed economic activities and their counts, and which countries make up those counts. For the activities,^[Disregard the first 2 rows because all the activities listed technically fall under "ISIC activities"] Europe has the largest makeup, then North America, Asia, and South America. 
+
+
+## How Do Emissions Totals Differ By Year?
+```{r}
+#| echo: false
+
+air_emissions <- air_emissions |> # unnesting the data so it can be summed
+  unnest(cols = EMISSIONS)
+
+air_emissions$TIME_PERIOD <- as.factor(air_emissions$TIME_PERIOD) 
+air_emissions$EMISSIONS <- as.numeric(air_emissions$EMISSIONS)
+# Summarize emissions by both Year and Quarter
+yearly_emissions <- air_emissions |>
+  filter(!grepl('-Q', TIME_PERIOD)) |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions by quarter
+ggplot(yearly_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkblue", size = 2) +
+  labs(
+    title = "Change in Total Emissions by Year",
+    x = "Quarter",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate x-axis labels for readability
+  scale_y_continuous(labels = scales::comma) 
+```
+The line plot shows that yearly emissions totals started at almost 180 billion in 2015 and dropped to almost 275 billion in 2022. The emissions count stays around the same values up until 2020 where there is a drop a bit under 200 billion tons. We can assume that drop in emissions was due to the Covid-19 lockdown. What is interesting is how the emissions continue to steadily drop to less than 175 billion tons by 2022. The drop could possibly be from a change in recording data or a genuine change in how much certain countries emitted that year.
+
+## By Quarter?
+```{r}
+#| echo: false
+
+
+# Summarize emissions by Quarter
+quarterly_emissions <- air_emissions |>
+  filter(grepl('-Q', TIME_PERIOD)) |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions by quarter
+ggplot(quarterly_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Change in Total Emissions by Quarter",
+    x = "Quarter",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate x-axis labels for readability
+  scale_y_continuous(labels = scales::comma)
+```
+The total emissions counts by quarter fluctuate quite a bit, reaching its highest point of just over 21 billion tons in the first quarter of 2015, and its lowest point of under 18 billion tons in the second quarter of 2020. That drop in emissions counts may have something to do with the Covid-19 lockdown at that time. 
+---
+## How Do Yearly Emissions Totals Differ Between Countries?
+```{r}
+#| echo: false 
+
+air_emissions <- air_emissions |>
+  unnest(cols = EMISSIONS)
+air_emissions$TIME_PERIOD <- as.factor(air_emissions$TIME_PERIOD)
+air_emissions$EMISSIONS <- as.numeric(air_emissions$EMISSIONS)
+# Filter for United States
+us_emissions <- air_emissions |>
+  filter(`Reference area` == "United States") |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for the United States by year
+ggplot(us_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "darkblue", size = 2) +
+  labs(
+    title = "Total Emissions per Year for United States",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Filter for Japan
+japan_emissions <- air_emissions |>
+  filter(`Reference area` == "Japan") |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for Japan by year
+ggplot(japan_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for Japan",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Yearly emission totals for the US started at almost 33 billion tons in 2015 and reached its lowest in 2020 at almost 28 billion tons. For Japan, emissions totals started at about 10.5 billion tons in 2015 and reached its lowest of 2 billion tons in 2021. There is a steeper decrease in emissions for Japan from 2019 to 2020, though it is not as substantial as the decrease for the US. Japan's from 2020 to 2021 is significant though, going from 9 billion tons to 2 billion tons, whereas the emissions for the US actually increased between 2020 and 2021.
+
+## By Region?
+```{r}
+#| echo: false 
+
+air_emissions <- air_emissions |>
+  unnest(cols = EMISSIONS)
+air_emissions$TIME_PERIOD <- as.factor(air_emissions$TIME_PERIOD)
+air_emissions$EMISSIONS <- as.numeric(air_emissions$EMISSIONS)
+# Filter for North America
+europe_emissions <- air_emissions |>
+  filter(Region == "North America") |>
+  group_by(TIME_PERIOD) %>%
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for North America by year
+ggplot(europe_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for North America",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Filter for Asia
+asia_emissions <- air_emissions |>
+  filter(Region == "Asia") |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for Asia by year
+ggplot(asia_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for Asia",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# zooming in below 5 billion tons to see the decrease better
+ggplot(asia_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for Asia",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) + 
+  coord_cartesian(ylim = c(0, 5000000000)) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+Total emissions for North America range from nearly double that of Asia. Both plots dip significantly around 2020 which can possibly be attributed to the Covid-19 lockdown. For North America, emissions begin to rise again after 2020, but for Asia, the counts continue a steep decline. The third plot allows you to see the emissions decline below 5 billion tons. These plots can tell us that the Western world overall has higher emissions counts per year, and they seem to be increasing while Asia's decreases, though this data cannot be the single marker of emissions patterns for these regions.
+
+# Conclusion
+This data is a great first step in looking into global emissions and trying to take note of certain yearly patterns or patterns by regions, or by country. The data has many observations but after doing the cleaning necessary for the data, there are not many columns to make truly insightful conclusions from. The work I did here with this data is primarily surface level and mostly what I could do with my expertise level. The data gave me information that I have previously known through structured learning in environmental science classes, (the western world contributes a large amount to global emissions) as well as general knowledge about the environment from the news about our air emissions tendencies. What surprised me the most would be the changes in global emissions patterns by year and by quarter and within some countries. What also surprised me was how the United Kingdom was the highest emitter by quarter. I would certainly like to know why they were the top emitter for those specific quarters. A few general things that did not surprise me would be the United States or other Western countries having higher emissions counts. Something that also did not surprise me would be the makeup of the economic activities. The counts of the economic activities were fairly close to each other, so the only thing that surprised me was that agriculture was the top observed activity, though many of the activities differed by 1-2 observations. The data set is lacking in some background context surrounding certain observations. I do not think I could look further into why or how some things occurred, but with a data set with more columns/attributes and more preliminary information surrounding the variables, better conclusions can be made.
+
+
+# References
+
+#### Data Source
+[Organisation for Economic Co-operation and Development](https://data-explorer.oecd.org/vis?fs[0]=Topic%2C1%7CEnvironment%20and%20climate%20change%23ENV%23%7CAir%20and%20climate%23ENV_AC%23&pg=0&fc=Topic&bp=true&snb=15&vw=tb&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_AEA%40DF_AEA&df[ag]=OECD.SDD.NAD.SEEA&df[vs]=1.1&dq=...T_CO2E%2BT...GHG%2BCO2%2BCO...&pd=2015%2C&to[TIME_PERIOD]=false)
+Accessed November 21st 2024  
+
+
+

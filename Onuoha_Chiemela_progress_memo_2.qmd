@@ -1,0 +1,166 @@
+---
+title: "Progress Memo 2"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Chiemela Onuoha"
+pagetitle: "PM1 Chiemela Onuoha"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Chiemela Onuoha's Github](https://github.com/stat301-1-2024-fall/final-project-1-chiemelaonu.git)
+
+:::
+
+## Data source
+
+[Dataset Link](https://data-explorer.oecd.org/vis?fs[0]=Topic%2C1%7CEnvironment%20and%20climate%20change%23ENV%23%7CAir%20and%20climate%23ENV_AC%23&pg=0&fc=Topic&bp=true&snb=15&vw=tb&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_AEA%40DF_AEA&df[ag]=OECD.SDD.NAD.SEEA&df[vs]=1.1&dq=...T_CO2E%2BT...GHG%2BCO2%2BCO...&pd=2015%2C&to[TIME_PERIOD]=false)
+Accessed November 21st 2024
+
+
+## Why I chose this Data
+I decided to change my dataset because I felt that the data was too clean and when making plots, the proportion of different observations were too similar. I felt like I would not be able to derive insightful conclusions from the data, because the data does not seem genuine.  
+I chose this new data because I am interested in the environment and air pollution. Climate change appears in the media more frequently, so dissecting a dataset with the emissions from different countries across different years is relevant. Besides the increase in climate change media, it is beneficial to be interested in the things around you without it being thrown in your face by the news or social media, so I intend to learn something new about the world’s yearly emissions. The data is plentiful and has various subtopics, such as the types of activities that are presumed to be causing the emissions, and I believe it would be intriguing to look into those activities, as well as how the data changes across different years or even quarters. So, questions like: Which countries have the highest emissions per quarter? Which years had the most observations? Which quarters had the most observations? Is there a disparity in air emissions among different parts of the world? i.e. the Western world vs. other parts, and so on. As I continue with the project, I first list all of the questions I initially want to answer with the data. Then, I plan to have weekly thresholds of analysis conducted on the data and to diligently meet with TAs or Professor Kuyper to make sure I am utilizing the data well, answering those questions to the best of my ability, and keeping good track of time.
+
+### Summary of Column Types
+```{r}
+#| echo: FALSE
+
+library(tidyverse)
+air_emissions_data <- read_csv("data/2.csv")
+air_emissions_quarterly <- read_csv("data/OECD.SDD.NAD.SEEA,DSD_AEA@DF_AEA,1.1+.Q..T_CO2E+T...GHG+CO2+CO....csv")
+glimpse(air_emissions_data)
+glimpse(air_emissions_quarterly)
+
+```
+Here lists the column names and the type of each column. Some of the observations for the columns are listed as well. There are 34 variables in this dataset. 28 of them are character, 2 are double, and 3 are logical vectors. There are around 104,000 observations in this dataset. All of the observations are unique, but most of the columns are copies of each other with slightly different language. In my initial cleaning of the data, I removed the columns that were not needed (leaving one column for each metric instead of 2) and I also rearranged the columns so that it is easier to read and interpret the data. I will be adding context in the README and also within my analyses when needed for columns that are not clear enough in what they represent.  
+
+The second data set has 703 rows and 34 columns as well. I joined this dataset with the first one because it has the quarterly data for emissions, so combining the data sets allows me to analyze more relationships among the data. I also removed the repeating columns in this second dataset to allow for combining the data (using rbind) to work correctly. As stated before, since the the columns are the same between the datasets, I will be adding more context on the meaning of certain columns when needed.
+
+
+```{r}
+#| label: tidying-data
+#| echo: FALSE
+
+# cleaning and rearranging data
+air_emissions_data <- air_emissions_data |>
+  select(-c(`Time period`, `Observation value`, OBS_STATUS,
+            UNIT_MULT, `Unit multiplier`, Decimals, DECIMALS,
+            REF_AREA, `Frequency of observation`, Measure,
+            `Unit of measure`, Adjustment, ACTIVITY, Pollutants, `Activity scope`,
+            Methodology, Source, STRUCTURE, STRUCTURE_ID, STRUCTURE_NAME, ACTION, ADJUSTMENT, METHODOLOGY))
+
+air_emissions_yearly <- air_emissions_data |>
+  pivot_wider(
+    names_from = MEASURE,
+    values_from = OBS_VALUE
+  ) |>
+  relocate(`Reference area`, EMISSIONS, `Observation status`, UNIT_MEASURE, POLLUTANT, TIME_PERIOD)
+
+
+air_emissions_quarterly <- air_emissions_quarterly |>
+  select(-c(`Time period`, `Observation value`, OBS_STATUS,
+            UNIT_MULT, `Unit multiplier`, Decimals, DECIMALS,
+            REF_AREA, `Frequency of observation`, Measure,
+            `Unit of measure`, Adjustment, ACTIVITY, Pollutants, `Activity scope`,
+            Methodology, Source, STRUCTURE, STRUCTURE_ID, STRUCTURE_NAME, ACTION, ADJUSTMENT, METHODOLOGY))
+
+air_emissions_quarterly <- air_emissions_quarterly |>
+  pivot_wider(
+    names_from = MEASURE,
+    values_from = OBS_VALUE
+  ) |>
+  relocate(`Reference area`, EMISSIONS, `Observation status`, UNIT_MEASURE, POLLUTANT, TIME_PERIOD)
+
+
+
+air_emissions <- rbind(air_emissions_yearly, air_emissions_quarterly)
+```
+
+
+### Snippet of Dataset
+```{r}
+#| label: tbl-snippet
+#| tbl-cap: "First Six Observations of Dataset"
+#| echo: FALSE
+
+knitr::kable(head(air_emissions))
+
+```
+
+
+
+### Preliminary EDA
+
+```{r}
+#| echo: FALSE
+
+# start of eda
+air_emissions |>
+  distinct(`Reference area`)
+
+air_emissions |>
+  ggplot(aes(`Reference area`)) +
+  geom_bar(fill = "cadetblue") +
+  coord_flip() +
+  labs(
+    y = "Number of Observations",
+    x = "Reference Area",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+)
+
+```
+This tibble and bar chart shows the reference areas of the data and their number of occurrences. Each observation is a distinct country, except for one observation that is listed as "European Union", which is a group of 27 different countries.  
+
+
+```{r}
+#| echo: FALSE
+
+air_emissions |>
+  filter(TIME_PERIOD == c(2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022)) |>
+  ggplot(aes(TIME_PERIOD)) +
+  geom_bar(fill = "black") +
+  labs(
+    x = "Year",
+    y = "Count",
+    title = "Distribution of Observations Within Each Year",
+    subtitle = "2022 has the least amount of observations, while the rest have similar numbers",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  )
+```
+The bar chart above shows the full-year time period range of the dataset (2015-2022). 
+
+```{r}
+#| echo: FALSE
+
+air_emissions |>
+  ggplot(aes(POLLUTANT)) +
+  geom_bar() +
+  labs(
+    title = "There Are Three Different Types of Emissions Recorded in This Data",
+    x = "Type of Pollutant",
+    y = "Count",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  )
+```
+The bar graph above shows the different types of emissions recorded in this data. 

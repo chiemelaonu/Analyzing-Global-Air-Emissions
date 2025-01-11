@@ -1,0 +1,148 @@
+---
+title: "Air Emissions Executive Summary"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Chiemela Onuoha"
+pagetitle: "ES Chiemela Onuoha"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Chiemela Onuoha's Github (chiemelaonu)](https://github.com/stat301-1-2024-fall/final-project-1-chiemelaonu.git)
+
+:::
+
+## Data source
+
+[Organisation for Economic Co-operation and Development](https://data-explorer.oecd.org/vis?fs[0]=Topic%2C1%7CEnvironment%20and%20climate%20change%23ENV%23%7CAir%20and%20climate%23ENV_AC%23&pg=0&fc=Topic&bp=true&snb=15&vw=tb&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_AEA%40DF_AEA&df[ag]=OECD.SDD.NAD.SEEA&df[vs]=1.1&dq=...T_CO2E%2BT...GHG%2BCO2%2BCO...&pd=2015%2C&to[TIME_PERIOD]=false)
+Accessed November 21st 2024
+
+```{r}
+#| echo: false
+
+library(tidyverse) 
+library(scales)
+air_emissions <- read_csv("data/air_emissions_clean.csv")
+```
+
+
+The purpose of the report was to get a better general understanding of global air emissions and how different countries make up those emissions counts. The specific points of focus for this report were which countries have the highest emissions per quarter? Which years had the most observations? Is there a disparity in air emissions among different parts of the world? i.e. the Western world vs. other parts, etc.
+
+## Which Countries Have the Highest Emissions per Quarter? 
+```{r}
+#| label: tbl-top5_quarterly
+#| tbl-cap: "Top Five Quarterly Emissions Observations"
+#| echo: FALSE
+
+# highest quarterly emissions
+air_emissions |>
+  filter(grepl('-Q', TIME_PERIOD)) |>
+  arrange(desc(EMISSIONS)) |>
+  slice_head(n = 5) |>
+  knitr::kable()
+```
+This table shows us that the United Kingdom is the country with the highest emissions per quarter.^[2 numbers are listed in the emissions column but the first value is what I am using.]
+
+## Which Years Had the Most Observations?
+```{r}
+#| echo: FALSE
+
+air_emissions |>
+  filter(TIME_PERIOD == c(2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022)) |>
+  ggplot(aes(TIME_PERIOD)) +
+  geom_bar(fill = "black") +
+  labs(
+    x = "Year",
+    y = "Count",
+    title = "Distribution of Observations Within Each Year",
+    subtitle = "2022 has the least amount of observations, while the rest have similar numbers",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  )
+```
+2015-2021 have about the same number of observations, but something interesting was that 2022 has a much smaller count of observations in the dataset. Unfortunately, there is no information from the dataset that says why, but it is still something to take note of.
+
+## Is There a Disparity in Air Emissions Among Different Parts of the World?
+```{r}
+#| echo: false 
+
+air_emissions <- air_emissions |>
+  unnest(cols = EMISSIONS)
+air_emissions$TIME_PERIOD <- as.factor(air_emissions$TIME_PERIOD)
+air_emissions$EMISSIONS <- as.numeric(air_emissions$EMISSIONS)
+# Filter for Europe
+europe_emissions <- air_emissions |>
+  filter(Region == "North America") |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for Europe by year
+ggplot(europe_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for North America",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Filter for Asia
+asia_emissions <- air_emissions |>
+  filter(Region == "Asia") |>
+  group_by(TIME_PERIOD) |>
+  summarize(Total_Emissions = sum(EMISSIONS, na.rm = TRUE), .groups = "drop")
+
+# Plot emissions for Asia by year
+ggplot(asia_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for Asia",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# zooming in below 5 billion tons to see the decrease better
+ggplot(asia_emissions, aes(x = TIME_PERIOD, y = Total_Emissions, group = 1)) +
+  geom_line(color = "steelblue") +
+  geom_point(color = "darkblue") +
+  labs(
+    title = "Total Emissions per Year for Asia",
+    x = "Year",
+    y = "Total Emissions",
+    caption = "Data from Organization for Economic Co-operation and Development (OECD)"
+  ) + 
+  coord_cartesian(ylim = c(0, 5000000000)) +
+  scale_y_continuous(labels = scales::comma) +  # Format y-axis with commas for large numbers
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Total emissions for North America range from nearly double that of Asia. Both plots dip significantly around 2020 which can possibly be attributed to the Covid-19 lockdown. For North America, emissions begin to rise again after 2020, but for Asia, the counts continue a steep decline. The third plot allows you to see the emissions decline below 5 billion tons. These plots can tell us that the Western world overall has higher emissions counts per year, and they seem to be increasing while Asia's decreases, though this data cannot be the single marker of emissions patterns for these regions.
+
+## Conclusion
+The data gave me information that I have previously known through structured learning in environmental science classes, (the western world contributes a large amount to global emissions) as well as general knowledge about the environment from the news about our air emissions tendencies.  What also surprised me was how the United Kingdom was the highest emitter by quarter. The data set is lacking in some background context surrounding certain observations. I do not think I could look further into why or how some things occurred, but with a data set with more columns/attributes and more preliminary information surrounding the variables, better conclusions can be made.

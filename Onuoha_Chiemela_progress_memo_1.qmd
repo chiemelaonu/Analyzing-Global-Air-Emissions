@@ -1,0 +1,76 @@
+---
+title: "Progress Memo 1"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Chiemela Onuoha"
+pagetitle: "PM1 Chiemela Onuoha"
+date: "October 24, 2024"
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Chiemela Onuoha's Github](https://github.com/stat301-1-2024-fall/final-project-1-chiemelaonu.git)
+
+:::
+
+## Data source
+
+[Dataset Link](https://www.kaggle.com/datasets/waqi786/remote-work-and-mental-health)
+Accessed October 28th 2024
+
+
+## Why I chose this data
+I chose this data because of the rising incorporation of remote work since the pandemic, especially within the technology field. I also have always viewed the discussion and analysis of mental health in various settings as incredibly important for our society as a whole. I believe it is interesting to see how the mental stability of workers in certain fields and whether or not that can be attributed to remote work, or the lack thereof. The data has a sufficient number of columns and overall data to compare across certain jobs, locations of work, different ages, etc. Questions like: What is the average work-life balance rating for a specific job role or industry? How many people in a certain job role have access to mental health resources? Which job role or industry has the worst stress level? Which regions have the most or smallest amount of job roles with access to mental health resources? As I continue with the project, I first would be listing all of the questions I initially want to answer with the data. Then, I plan to have weekly thresholds of analysis conducted on the data, and to diligently meet with TAs or Professor Kuyper to make sure I am utilizing the data well, answering those questions to the best of ability, and keeping good track of time.
+
+### Summary of Column Types
+```{r}
+#| echo: FALSE
+
+library(tidyverse)
+mental_health <- read_csv("data/Impact_of_Remote_Work_on_Mental_Health.csv")
+
+glimpse(mental_health)
+
+```
+Here lists the column names and the type of each column. Some of the observations for the columns are listed as well. There are 20 variables in this dataset. 13 of them are character, and 7 are double. There are 5000 unique values in the dataset. There does not appear to be an missingness in the data and the data is already tidy.
+
+### Snippet of Dataset
+```{r}
+#| label: tbl-snippet
+#| tbl-cap: "First Six Observations of Dataset"
+#| echo: FALSE
+
+knitr::kable(head(mental_health))
+
+```
+
+
+## Preliminary EDA
+
+### Distribution of Job Roles
+
+!["Distribution of Job Roles"](plots/job_role.png)
+This plot shows the count of all the different job roles present in the dataset. The counts for each role are each around 700, so the data is rather proportional.
+
+### Makeup of Roles in each Industry
+!["Makeup of Job Roles in each Industry"](plots/job_in_industry.png)
+ 
